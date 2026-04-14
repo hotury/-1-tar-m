@@ -1,0 +1,36 @@
+{
+  "name": "+1 Tarım | Bilgi Köprüsü",
+  "short_name": "+1 Tarım",
+  "description": "Çiftçilerin tarım uzmanlarıyla buluştuğu platform.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F2F2F7",
+  "theme_color": "#2D5A27",
+  "lang": "tr",
+  "categories": ["agriculture", "education", "lifestyle"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Soru Sor",
+      "short_name": "Sor",
+      "description": "Yeni soru sor",
+      "url": "/?action=ask",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
