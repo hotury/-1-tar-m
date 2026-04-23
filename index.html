@@ -217,9 +217,24 @@
     </div>
     
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js"></script>  <!-- Bu her zaman Supabase'den sonra gelmeli -->
-<script>eruda.init();</script>
+    
+    <script src="app.js"></script> 
+
+    <script>
+        // Eruda'yı başlatalım (Telefonda konsolu görmek için)
+        eruda.init();
+
+        // EĞER app.js yüklenemezse veya isim yanlışsa diye buraya bir "köprü" kuruyoruz:
+        // Eğer magicLinkGonder fonksiyonu bir şekilde yüklendiyse, onu Giris ismine eşitle
+        window.onload = function() {
+            if (typeof magicLinkGonder !== 'undefined') {
+                window.magicLinkGiris = magicLinkGonder;
+                console.log("Bağlantı kuruldu: magicLinkGiris artık aktif.");
+            } else {
+                console.error("Hata: app.js dosyası veya magicLinkGonder fonksiyonu bulunamadı!");
+            }
+        };
+    </script>
 </body>
 </html>
