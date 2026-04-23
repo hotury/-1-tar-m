@@ -95,6 +95,8 @@ async function magicLinkGonder() {
     const kvkk  = document.getElementById('kvkk-giris').checked;
     if (!email || !email.includes('@')) { showToast('❌ Geçerli bir e-posta girin'); return; }
     if (!kvkk) { showToast('❌ Lütfen koşulları kabul edin'); return; }
+    // Mevcut fonksiyonun altına bunu yapıştır:
+const magicLinkGiris = magicLinkGonder;
 
     const btn = document.querySelector('#panel-giris .send-btn');
     btn.disabled = true; btn.textContent = 'Gönderiliyor...';
