@@ -732,6 +732,49 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Magic link dönüşü + profil upsert
     sb.auth.onAuthStateChange(async (event, session) => {
+    console.log('Auth event:', event, session);
+    if (event === 'SIGNED_IN') {
+        _currentUser = session.user;
+        console.log('User ID:', _currentUser.id);
+
+        const bekleyen = localStorage.getItem('pending_profile');
+        const pd = bekleyen ? JSON.parse(bekleyen) : null;
+
+        const upsertPayload = {
+            id:        _currentUser.id,
+            name:      pd?.isim     || _currentUser.email?.split('@')[0],
+            city:      pd?.sehir    || null,
+            specialty: pd?.uzmanlik || null,
+            role:      'user'
+        };
+        console.log('Upsert payload:', upsertPayload);
+
+        const { data, error } = await sb
+            .from('profiles')
+            .upsert(upsertPayload, { onConflict: 'id' });
+
+        console.log('Upsert result:', data, 'Error:', error);
+
+        if (error) {
+            showToast('DB Hata: ' + error.message + ' | ' + error.code);
+            return;
+        }
+
+        if (bekleyen) localStorage.removeItem('pending_profile');
+
+        const { data: prof } = await sb
+            .from('profiles').select('*')
+            .eq('id', _currentUser.id).single();
+
+        _profile = prof;
+        _isAdmin = prof?.role === 'admin';
+
+        oturumKontrol();
+        sorulariYukle();
+        closeAuthModal();
+        showToast('✅ Giriş yapıldı!');
+    }
+});
         if (event === 'SIGNED_IN') {
             _currentUser = session.user;
 
