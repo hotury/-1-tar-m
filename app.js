@@ -1,88 +1,107 @@
-// 1. Kayıt Fonksiyonu (Hata Yakalayıcı ve Hızlandırılmış Mod)
-async function signUp() {
-    // Formdaki verileri alıyoruz (ID'lerin HTML ile aynı olduğundan emin ol)
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const fullName = document.getElementById('fullName').value;
-    const city = document.getElementById('city').value;
-    const specialty = document.getElementById('specialty').value;
-    const role = document.getElementById('role') ? document.getElementById('role').value : 'user';
+// 1. SUPABASE BAĞLANTI AYARLARI
+const supabaseUrl = 'https://kjgmwwfpdvpqqdsvqohr.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqZ213d2ZwZHZwcXFkc3Zxb2hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MDA4ODAsImV4cCI6MjA5MDk3Njg4MH0.082r3tqYx1WUFbPuH7xmOmlmmvhco-ZaxR460Kqo90U';
+const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    console.log("🚀 Kayıt denemesi başladı...");
-    console.log("📝 Gönderilen Bilgiler:", { email, fullName, city, specialty, role });
+// ... (Toast ve Global State fonksiyonları aynı kalıyor) ...
 
-    // "Kaydediliyor" yazısını göster
-    const statusLabel = document.getElementById('statusLabel'); 
-    if(statusLabel) statusLabel.innerText = "Sistem kontrol ediliyor, lütfen bekleyin...";
+// ─────────────────────────────────────────
+// KAYIT OL FONKSİYONU (Düzeltildi)
+// ─────────────────────────────────────────
+async function kayitOl() {
+    const email    = document.getElementById('kayit-email').value.trim();
+    const isim     = document.getElementById('kayit-isim').value.trim();
+    const sehir    = document.getElementById('kayit-sehir').value.trim();
+    const uzmanlik = document.getElementById('kayit-uzmanlik').value;
+    const kvkk     = document.getElementById('kvkk-kayit').checked;
 
-    try {
-        // Supabase Kayıt İşlemi
-        const { data, error } = await supabase.auth.signUp({
-            email: email,
-            password: password,
-            options: {
-                data: {
-                    full_name: fullName,
-                    city: city,
-                    specialty: specialty,
-                    role: role
-                }
-            }
-        });
+    console.log("🚀 Kayıt işlemi başladı: ", { email, isim, sehir, uzmanlik });
 
-        // 1. Durum: Supabase bir hata döndürdü (Şifre kısa, e-posta geçersiz vb.)
-        if (error) {
-            console.error("❌ Supabase Hatası:", error.message);
-            alert("Kayıt Başarısız: " + error.message);
-            if(statusLabel) statusLabel.innerText = "Hata oluştu.";
-            return;
-        }
+    if (!email || !email.includes('@')) { showToast('❌ Geçerli bir e-posta girin'); return; }
+    if (!isim)  { showToast('❌ İsminizi girin'); return; }
+    if (!kvkk)  { showToast('❌ Lütfen koşulları kabul edin'); return; }
 
-        console.log("✅ Auth kaydı başarılı:", data);
+    const btn = document.querySelector('#panel-kayit .send-btn');
+    btn.disabled = true; btn.textContent = 'Kaydediliyor...';
 
-        // 2. Durum: Kayıt oldu ama e-posta onayı hala açık (Session null döner)
-        if (data.user && !data.session) {
-            console.warn("⚠️ E-posta onay ayarı hala açık!");
-            alert("Kayıt yapıldı ancak e-posta onayı bekliyor. Supabase panelinden 'Confirm Email' ayarını kapatmalısın.");
-            if(statusLabel) statusLabel.innerText = "E-posta onayı bekleniyor...";
-        } 
-        // 3. Durum: Her şey mükemmel, giriş yapıldı
-        else {
-            console.log("🎉 Giriş başarılı! Yönlendiriliyorsunuz...");
-            alert("Kaydınız başarıyla tamamlandı!");
-            window.location.href = "index.html"; // Ana sayfaya gönder
-        }
-
-    } catch (err) {
-        console.error("💥 Kod Hatası:", err);
-        alert("Beklenmedik bir hata oluştu: " + err.message);
-    }
-}
-
-// 2. Giriş (Login) Fonksiyonu
-async function signIn() {
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-
-    console.log("🔑 Giriş denemesi yapılıyor...");
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
+    // Magic Link Gönderimi
+    const { error } = await sb.auth.signInWithOtp({
+        email, 
+        options: { emailRedirectTo: window.location.origin }
     });
 
     if (error) {
-        console.error("❌ Giriş Hatası:", error.message);
-        alert("Giriş başarısız: " + error.message);
-    } else {
-        console.log("✅ Giriş başarılı:", data);
-        window.location.href = "index.html";
+        console.error("❌ Supabase Auth Hatası:", error.message);
+        showToast('❌ ' + error.message);
+        btn.disabled = false; btn.textContent = '✅ Kayıt Ol & Link Gönder';
+        return;
     }
+
+    // KRİTİK: Kullanıcı linke tıklayıp dönene kadar verileri tarayıcıda saklıyoruz
+    const profileData = { 
+        name: isim, 
+        city: sehir, 
+        specialty: uzmanlik, 
+        email: email 
+    };
+    localStorage.setItem('pending_profile', JSON.stringify(profileData));
+    
+    console.log("📂 Geçici profil verisi kaydedildi:", profileData);
+    btn.disabled = false; btn.textContent = '✅ Kayıt Ol & Link Gönder';
+    showToast('📧 Giriş linki e-postanıza gönderildi!', 6000);
 }
 
-// 3. Çıkış (Logout) Fonksiyonu
-async function logout() {
-    const { error } = await supabase.auth.signOut();
-    if (error) console.error("Çıkış hatası:", error.message);
-    window.location.reload();
-}
+// ─────────────────────────────────────────
+// OTURUM DEĞİŞİKLİĞİ VE VERİTABANI KAYDI (Düzeltildi)
+// ─────────────────────────────────────────
+sb.auth.onAuthStateChange(async (event, session) => {
+    console.log("🔄 Oturum Durumu Değişti:", event);
+
+    if (event === 'SIGNED_IN' && session) {
+        _currentUser = session.user;
+        console.log("👤 Kullanıcı Giriş Yaptı:", _currentUser.email);
+
+        const bekleyen = localStorage.getItem('pending_profile');
+        const pd       = bekleyen ? JSON.parse(bekleyen) : null;
+
+        try {
+            // Veritabanına (profiles tablosu) asıl kaydı burada yapıyoruz
+            const { error: upsertError } = await sb.from('profiles').upsert({
+                id:        _currentUser.id,
+                name:      pd?.name      || _currentUser.email?.split('@')[0],
+                city:      pd?.city      || null,
+                specialty: pd?.specialty || null,
+                role:      'user' // Yeni kayıtlar her zaman user başlar
+            }, { onConflict: 'id' });
+
+            if (upsertError) {
+                console.error("❌ Profil Kayıt Hatası (SQL):", upsertError.message);
+                showToast("⚠️ Profil oluşturulamadı: " + upsertError.message);
+            } else {
+                console.log("✅ Profil başarıyla güncellendi/oluşturuldu.");
+                if (bekleyen) localStorage.removeItem('pending_profile');
+            }
+
+            // Güncel profili çek ve arayüzü güncelle
+            const { data: prof } = await sb.from('profiles').select('*').eq('id', _currentUser.id).single();
+            _profile = prof;
+            _isAdmin = prof?.role === 'admin';
+
+            oturumKontrol();
+            sorulariYukle();
+            closeAuthModal();
+            showToast('✅ Giriş yapıldı!');
+
+        } catch (e) {
+            console.error("💥 Beklenmedik Hata:", e);
+        }
+    }
+
+    if (event === 'SIGNED_OUT') {
+        _currentUser = null; _isAdmin = false; _profile = null;
+        oturumKontrol();
+        sorulariYukle();
+    }
+});
+
+// ... (Geri kalan tüm fonksiyonlar (sorulariYukle, ekranaBas vb.) mevcut dosyadaki gibi kalabilir) ...
